@@ -15,27 +15,34 @@ Target board "NUMAKER_PFM_M487" with ARM toolchain.
 3. mbed config -G ARM_PATH "C:\Keil_v5\ARM\ARMCC"
 4. mbed compile
 
-Please note that the toolchain path in step 3 may different from your environment.
+Please note that the toolchain path in step 3 may be different from your environment.
 
 ### Burn Code & Execute
 1. Connect the board NuMaker-PFM-XXX with your PC by USB cable, then there will be one "MBED" disk.
 2. Copy the built binary file into "MBED" disk on you PC.
-3. Press reset button to execute, user could test Audio Codec.
+3. Press reset button to execute, user could test emWin simple demo.
 
 ### Demo condition, document and link
-ILI9341 MPU-type RGB56 QVGA LCD with resistive touch panel.
+This demo utilizes LCD and touch to display and touch operation.
 
-Please reference the emWin related documents for further details, the path is in "\NuMaker-mbed-emWin-example\emWin\Doc"
+LCD: ILI9341 MPU-type RGB56 QVGA LCD with resistive touch panel.
 
-Quick start guide:  M480 emWin Quick Start Guide.pdf
-Official user manual: UM03001_emWin5.pdf
+Please refer to the emWin related documents in [OpenNuvoton](https://github.com/OpenNuvoton/M480BSP) for more details!
 
-SEGGER emWin official forum link:
-https://forum.segger.com/index.php/Board/12-emWin-related/
+The link of BSP for emWin quick start guide ["M480 emWin Quick Start Guide.pdf"](https://github.com/OpenNuvoton/M480BSP)
 
-Nuvoton HMI/GUI official forum link:
-http://forum.nuvoton.com/viewforum.php?f=31&sid=94265886594b34c7cd812d3f74c44fec
-http://nuvoton-mcu.com/forum.php?mod=forumdisplay&fid=86
+The link of emWin official user manual ["UM03001_emWin5.pdf"](https://github.com/OpenNuvoton/M480BSP/tree/master/ThirdParty/emWin/Doc)
+
+[The link of SEGGER emWin official forum](https://forum.segger.com/index.php/Board/12-emWin-related/)
+
+The links of Nuvoton HMI/GUI official forum:
+[NuForum](http://forum.nuvoton.com/viewforum.php?f=31)
+[牛卧堂](http://nuvoton-mcu.com/forum.php?mod=forumdisplay&fid=86)
+
+### How to utilize emWin tool "GUIBuilder" in Windows OS?
+The link of emWin official Windows tool ["GUIBuilder"](https://github.com/OpenNuvoton/M480BSP/tree/master/ThirdParty/emWin/Tool)
+
+Please refer to the chapter 4 "EMWIN GUIBUILDER" of "M480 emWin Quick Start Guide.pdf" for more details.
 
 ### PIN
 M487 TFT pin:

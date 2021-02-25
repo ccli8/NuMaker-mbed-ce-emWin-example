@@ -70,7 +70,7 @@ uint16_t Get_TP_X(void)
     /* Enable the sample module 1 interrupt.  */
     EADC_ENABLE_INT(EADC, BIT1);    //Enable sample module A/D ADINT1 interrupt.
     EADC_ENABLE_SAMPLE_MODULE_INT(EADC, 1, BIT1);    //Enable sample module 1 interrupt.
-    NVIC_EnableIRQ(ADC1_IRQn);
+    NVIC_EnableIRQ(43); //for ADC1_IRQn and EADC01_IRQn
 
     /* Reset the ADC interrupt indicator and trigger sample module 1 to start A/D conversion */
     g_u32AdcIntFlag_TP = 0;
@@ -117,7 +117,7 @@ uint16_t Get_TP_Y(void)
     /* Enable the sample module 2 interrupt.  */
     EADC_ENABLE_INT(EADC, BIT2);    //Enable sample module A/D ADINT1 interrupt.
     EADC_ENABLE_SAMPLE_MODULE_INT(EADC, 1, BIT2);    //Enable sample module 2 interrupt.
-    NVIC_EnableIRQ(ADC1_IRQn);
+    NVIC_EnableIRQ(43); //for ADC1_IRQn and EADC01_IRQn)
 
     /* Reset the ADC interrupt indicator and trigger sample module 2 to start A/D conversion */
     g_u32AdcIntFlag_TP = 0;

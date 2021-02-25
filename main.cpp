@@ -61,6 +61,9 @@ void MainTask(void)
 //
 int main(void)
 {
+#ifdef MBED_MAJOR_VERSION
+    printf("Mbed OS version %d.%d.%d\r\n\n", MBED_MAJOR_VERSION, MBED_MINOR_VERSION, MBED_PATCH_VERSION);
+#endif
     //
     // Before touch calibration
     //

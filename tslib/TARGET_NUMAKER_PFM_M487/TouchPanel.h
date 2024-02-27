@@ -1,6 +1,5 @@
-#if 0	// moved to the related target folders
-#ifndef __M48XTOUCHPANEL_H__
-#define __M48XTOUCHPANEL_H__
+#ifndef __TOUCHPANEL_H__
+#define __TOUCHPANEL_H__
 
 #define __DEMO_TSFILE_ADDR__    0x00040000 /* SPI flash 256KB address */
 
@@ -20,5 +19,4 @@ int Check_TouchPanel(void);
 }
 #endif /* __cplusplus */
 
-#endif
 #endif

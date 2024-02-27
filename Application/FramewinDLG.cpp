@@ -23,7 +23,7 @@
 #include "stdio.h"
 #include "DIALOG.h"
 
-#include "M480.h"
+#include "NuMicro.h"
 /* Scheduler include files. */
 //#include "FreeRTOS.h"
 //#include "task.h"

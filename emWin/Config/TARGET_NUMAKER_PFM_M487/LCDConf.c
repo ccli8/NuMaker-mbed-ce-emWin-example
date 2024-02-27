@@ -40,16 +40,15 @@ File        : LCDConf.c
 Purpose     : Display controller configuration (single layer)
 ---------------------------END-OF-HEADER------------------------------
 */
-#if 0	// moved to the related target folders
 #include <stddef.h>
 #include <stdio.h>
 
 #include "GUI.h"
 #include "GUIDRV_FlexColor.h"
 
-#include "M480.h"
+#include "NuMicro.h"
 
-#include "M48XTouchPanel.h"
+#include "TouchPanel.h"
 
 /*********************************************************************
 *
@@ -614,5 +613,4 @@ int LCD_X_DisplayDriver(unsigned LayerIndex, unsigned Cmd, void * pData)
     }
     return r;
 }
-#endif
 /*************************** End of file ****************************/

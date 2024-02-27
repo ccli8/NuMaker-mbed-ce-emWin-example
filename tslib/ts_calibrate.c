@@ -26,9 +26,9 @@
 //#include "wbtypes.h"
 //#include "wblib.h"
 //#include "LCDconf.h"
-#include "M480.h"
+#include "NuMicro.h"
 #include "GUI.h"
-#include "M48XTouchPanel.h"
+#include "TouchPanel.h"
 //#include "nvtfat.h"
 
 #ifdef __USE_SD__

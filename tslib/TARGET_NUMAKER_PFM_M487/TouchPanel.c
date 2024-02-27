@@ -1,10 +1,10 @@
-#if 0	// moved to the related target folders
-#include "M480.h"
+
+#include "NuMicro.h"
 
 //#include "stdlib.h"
 #include "GUI.h"
 //#include "W55FA93_adc.h"
-#include "M48XTouchPanel.h"
+#include "TouchPanel.h"
 //#include "lcdconf.h"
 
 
@@ -151,4 +151,4 @@ int Check_TouchPanel(void)
 {
     return 0;   //Pen up;
 }
-#endif
+

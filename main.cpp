@@ -4,7 +4,7 @@
 #include "WM.h"
 #include "FRAMEWIN.h"
 
-#include "M48XTouchPanel.h"
+#include "TouchPanel.h"
 #include "tslib.h"
 //
 // Enable emWin touch feature after calibration

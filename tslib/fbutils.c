@@ -23,7 +23,7 @@
 #include "fbutils.h"
 //#include "wbtypes.h"
 //#include "LCDconf.h"
-#include "M48XTouchPanel.h"
+#include "TouchPanel.h"
 #include "GUI.h"
 #if 0
 union multiptr

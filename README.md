@@ -6,19 +6,13 @@ This is an example to utilize emWin library to demonstrate interactive feature.
 Target board "NUMAKER_PFM_M487" with GCC_ARM toolchain.
 1. mbed target "NUMAKER_PFM_M487"
 2. mbed toolchain "GCC_ARM"
-3. mbed config -G GCC_ARM_PATH "C:\Program Files (x86)\GNU Tools ARM Embedded\5.4 2016q2\bin"
+3. mbed config -G GCC_ARM_PATH "C:\Program Files (x86)\GNU Tools ARM Embedded\6 2017-q1-update\bin"
 4. mbed compile
 
 Target board "NUMAKER_PFM_M487" with ARM toolchain.
 1. mbed target "NUMAKER_PFM_M487"
 2. mbed toolchain "ARM"
-3. mbed config -G ARM_PATH "C:\Keil_v5\ARM\ARMCC"
-4. mbed compile
-
-Target board "NUMAKER_PFM_M487" with IAR toolchain.
-1. mbed target "NUMAKER_PFM_M487"
-2. mbed toolchain "IAR"
-3. mbed config -G IAR_PATH "C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.2\arm"
+3. mbed config -G ARMC6_PATH "C:\Keil_v5\ARM\ARMCLANG\bin"
 4. mbed compile
 
 Please note that the toolchain path in step 3 may be different from your environment.

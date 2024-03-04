@@ -12,6 +12,6 @@
  * Misc utils for ts test programs
  */
 
-void getxy(int *x, int *y);
+//void getxy(int *x, int *y);
 
 #endif /* _TESTUTILS_H */

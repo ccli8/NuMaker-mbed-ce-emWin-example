@@ -10,10 +10,26 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#define DOUT_XR PB_9
+#define DIN_YD  PH_5
+#define DOUT_XL PH_4
+#define AIN_X   PB_8
+
+#define DOUT_YU PB_8
+#define DOUT_YD PH_5
+#define DIN_XL  PH_4
+#define AIN_Y   PB_9
+
+#define ADC_SAMPLE_SHIFT     4
+#define ADC_SAMPLE_THRESHOLD 3600
+
 int Init_TouchPanel(void);
 int Read_TouchPanel(int *x, int *y);
 int Uninit_TouchPanel(void);
 int Check_TouchPanel(void);
+
+int ts_calibrate(int xsize, int ysize);
+void ts_init(void);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,6 @@
 #include "FRAMEWIN.h"
 
 #include "TouchPanel.h"
-#include "tslib.h"
 //
 // Enable emWin touch feature after calibration
 //
@@ -19,20 +18,29 @@ Ticker s_ticker_emWinloop;
 //
 extern GUI_TIMER_TIME OS_TimeMS;
 //
-// Tick loop for emWin and touch
+// Tick loop for emWin
 //
 void task_emWinloop(void)
 {
     OS_TimeMS++;
-#if GUI_SUPPORT_TOUCH
-    if ( OS_TimeMS % 10 == 0 )
+}
+//
+// loop for emWin touch
+//
+Thread touch_thread;
+
+void gui_touch_thread()
+{
+    while (true)
     {
+#if GUI_SUPPORT_TOUCH
         if ( g_enable_Touch == 1 )
         {
             GUI_TOUCH_Exec();
         }
-    }
 #endif
+        ThisThread::sleep_for(20);
+    }
 }
 //
 // Extern emWin GUI layout
@@ -85,6 +93,7 @@ int main(void)
     // After touch calibration
     //
     g_enable_Touch = 1;
+    touch_thread.start(gui_touch_thread);
     //
     // Create GUI layout
     //

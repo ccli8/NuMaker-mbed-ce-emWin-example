@@ -1,4 +1,4 @@
-
+#if 0	// moved to the related target folders
 #include "NuMicro.h"
 
 //#include "stdlib.h"
@@ -151,4 +151,4 @@ int Check_TouchPanel(void)
 {
     return 0;   //Pen up;
 }
-
+#endif

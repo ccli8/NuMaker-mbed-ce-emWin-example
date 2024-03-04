@@ -1,403 +1,408 @@
 /*
- *  tslib/tests/ts_calibrate.c
+ *  ts_calibrate.c
  *
- *  Copyright (C) 2001 Russell King.
+ *  Copyright (C) 2022 Nuvoton Technology
  *
- * This file is placed under the GPL.  Please see the file
- * COPYING for more details.
  *
- * $Id: ts_calibrate.c,v 1.8 2004/10/19 22:01:27 dlowder Exp $
- *
- * Basic test program for touchscreen library.
  */
 #include <stdio.h>
 #include <stdlib.h>
-//#include <signal.h>
-//#include <string.h>
-//#include <unistd.h>
-//#include <sys/fcntl.h>
-//#include <sys/ioctl.h>
-//#include <sys/mman.h>
-//#include <sys/time.h>
-#include "tslib.h"
-#include "fbutils.h"
-#include "testutils.h"
-//#include "wbio.h"
-//#include "wbtypes.h"
-//#include "wblib.h"
-//#include "LCDconf.h"
+#include <string.h>
 #include "NuMicro.h"
 #include "GUI.h"
 #include "TouchPanel.h"
-//#include "nvtfat.h"
 
-#ifdef __USE_SD__
-#include "diskio.h"
-#include "ff.h"
-#endif
+#define POINT_NUM           5   //7
+#define MAX_NUM             200
+
+#define DIFF                    5
 
 typedef struct
 {
-    int x[5], xfb[5];
-    int y[5], yfb[5];
-    int a[7];
-} calibration;
+    int x;
+    int y;
+} coordiante;
 
-static int palette [] =
-{
-    /*0x000000, 0xffe080, 0xffffff, 0xe0c0a0*/
-    GUI_MAKE_COLOR(0x000000), GUI_MAKE_COLOR(0x80e0ff), GUI_MAKE_COLOR(0xffffff), GUI_MAKE_COLOR(0xa0c0e0), GUI_MAKE_COLOR(0x7F1F00), GUI_MAKE_COLOR(0x20201F), GUI_MAKE_COLOR(0x5F3F1F)
-};
-#define NR_COLORS (sizeof (palette) / sizeof (palette [0]))
+// physical.x, y is the coordinate of H/W for LCD.
+// logical x,y is the coordinate of GUI.
+coordiante physical[POINT_NUM], logical[POINT_NUM];
 
-#ifdef __USE_SD__
-extern FIL hFile;
-#endif
+// samples x, y for calibration. maximum number is adjustable MAX_NUM
+// the duration is at least 2 seconds for clicking down, and then release
+
+int sampleX[MAX_NUM], sampleY[MAX_NUM];
+/*
+// Binary linear equations are as follows, it is the key of solution.
+// logical.x = physical.x X A + physical.y X B + C
+// logical.y = physical.x X D + physical.y X E + F
+// Xl = A x Xp + B x Yp + C
+// Yl = D x Xp + E x Yp + F
+// We use Xp and Yp to be the multiple of the above equations, and obtain the following equations.
+// Xl = A x Xp + B x Yp + C
+// Xl x Xp = A x Xp x Xp + B x Yp x Xp + C x Xp
+// Xl x Yp = A x Xp x Yp + B x Yp x Yp + C x Yp
+// we obtain A, B, C from the above 3 equations, by accumulating the coordinates of 5 points.
+// Yl = D x Xp + E x Yp + F
+// Yl x Xp = D x Xp x Xp + E x Yp x Xp + F x Xp
+// Yl x Yp = D x Xp x Yp + E x Yp x Yp + F x Yp
+// we obtain D, E, F from the above 3 equations, by accumulating the coordinates of 5 points.
+// the value of calibration : A B C D E F (65536), 7 integers used, 1 integer reserved
+*/
+int cal_values[8];
+
 
 int ts_writefile(void);
 int ts_readfile(void);
-
 int ts_calibrate(int xsize, int ysize);
-//int linear_read(int *sumx, int *sumy);
-int ts_phy2log(int *sumx, int *sumy);
-calibration cal, final_cal;
+int ts_phy2log(int *logx, int *logy);
 
-#if 0
-int perform_calibration(calibration *cal)
+int DisplayFailStatus(int xsize, int ysize)
 {
-    int j;
-    float n, x, y, x2, y2, xy, z, zx, zy;
-    float det, a, b, c, e, f, i;
-    float scaling = 65536.0;
+    int i;
 
-    int nn,nx,ny,nx2,ny2, nxy;
-// Get sums for matrix
-    n = x = y = x2 = y2 = xy = 0;
-    for(j=0; j<5; j++)
+    GUI_SetFont(&GUI_Font32_ASCII);
+    GUI_SetTextMode(GUI_TM_XOR);
+
+    for (i=0; i<3; i++)
     {
-        n += 1.0;
-        x += (float)cal->x[j];
-        y += (float)cal->y[j];
-        x2 += (float)(cal->x[j]*cal->x[j]);
-        y2 += (float)(cal->y[j]*cal->y[j]);
-        xy += (float)(cal->x[j]*cal->y[j]);
-    }
-    nn = (int)n;
-    nx = (int)x;
-    ny = (int)y;
-    nx2 = (int)x2;
-    ny2 = (int)y2;
-    nxy = (int)xy;
-    printf("n=%d,x=%d,y=%d,x2=%d,y2=%d, xy=%d\n",nn,nx,ny,nx2,ny2,nxy);
-// Get determinant of matrix -- check if determinant is too small
-    det = n*(x2*y2 - xy*xy) + x*(xy*y - x*y2) + y*(x*xy - y*x2);
-    if(det < 0.1 && det > -0.1)
-    {
-        printf("ts_calibrate: determinant is too small -- %f\n",det);
-        return 0;
+        GUI_DispStringHCenterAt("Fail to calibrate", xsize / 2, ysize / 4 + 30);
+        GUI_X_Delay(500);
+        GUI_DispStringHCenterAt("Fail to calibrate", xsize / 2, ysize / 4 + 30);
+        GUI_X_Delay(500);
     }
 
-// Get elements of inverse matrix
-    a = (x2*y2 - xy*xy)/det;
-    b = (xy*y - x*y2)/det;
-    c = (x*xy - y*x2)/det;
-    e = (n*y2 - y*y)/det;
-    f = (x*y - n*xy)/det;
-    i = (n*x2 - x*x)/det;
+    return -1;
+}
 
-// Get sums for x calibration
-    z = zx = zy = 0;
-    for(j=0; j<5; j++)
-    {
-        z += (float)cal->xfb[j];
-        zx += (float)(cal->xfb[j]*cal->x[j]);
-        zy += (float)(cal->xfb[j]*cal->y[j]);
-    }
+void write_cross(int x, int y)
+{
+    GUI_DrawLine(x - 12, y, x - 2, y);
+    GUI_DrawLine(x + 2, y, x + 12, y);
+    GUI_DrawLine(x, y - 12, x, y - 2);
+    GUI_DrawLine(x, y + 2, x, y + 12);
+    GUI_DrawLine(x - 6, y - 12, x - 12, y - 12);
+    GUI_DrawLine(x - 12, y - 12, x - 12, y - 6);
+    GUI_DrawLine(x - 12, y + 6, x - 12, y + 12);
+    GUI_DrawLine(x - 12, y + 12, x - 6, y + 12);
+    GUI_DrawLine(x + 6, y + 12, x + 12, y + 12);
+    GUI_DrawLine(x + 12, y + 12, x + 12, y + 6);
+    GUI_DrawLine(x + 12, y - 6, x + 12, y - 12);
+    GUI_DrawLine(x + 12, y - 12, x + 6, y - 12);
+}
 
-// Now multiply out to get the calibration for framebuffer x coord
-    cal->a[0] = (int)((a*z + b*zx + c*zy)*(scaling));
-    cal->a[1] = (int)((b*z + e*zx + f*zy)*(scaling));
-    cal->a[2] = (int)((c*z + f*zx + i*zy)*(scaling));
-#if  1 //close
-    nn = (int)((a*z + b*zx + c*zy)*(scaling));
-    nx = (int)((b*z + e*zx + f*zy)*(scaling));
-    ny = (int)((c*z + f*zx + i*zy)*(scaling));
-//  nn = (int)(a*z + b*zx + c*zy);
-//  nx = (int) (b*z + e*zx + f*zy);
-//  ny = (int) (c*z + f*zx + i*zy);
-    printf("%d %d %d\n",nn,nx,ny);
-#endif
-// Get sums for y calibration
-    z = zx = zy = 0;
-    for(j=0; j<5; j++)
-    {
-        z += (float)cal->yfb[j];
-        zx += (float)(cal->yfb[j]*cal->x[j]);
-        zy += (float)(cal->yfb[j]*cal->y[j]);
-    }
-
-// Now multiply out to get the calibration for framebuffer y coord
-    cal->a[3] = (int)((a*z + b*zx + c*zy)*(scaling));
-    cal->a[4] = (int)((b*z + e*zx + f*zy)*(scaling));
-    cal->a[5] = (int)((c*z + f*zx + i*zy)*(scaling));
-#if 1  // closed
-//  nn = (int) (a*z + b*zx + c*zy);
-//  nx = (int) (b*z + e*zx + f*zy);
-//  ny = (int) (c*z + f*zx + i*zy);
-    nn = (int)((a*z + b*zx + c*zy)*(scaling));
-    nx = (int)((b*z + e*zx + f*zy)*(scaling));
-    ny = (int)((c*z + f*zx + i*zy)*(scaling));
-    printf("%d %d %d\n",nn,nx,ny);
-#endif
-// If we got here, we're OK, so assign scaling to a[6] and return
-    cal->a[6] = (int)scaling;
-    return 1;
-    /*
-    // This code was here originally to just insert default values
-        for(j=0;j<7;j++) {
-            c->a[j]=0;
-        }
-        c->a[1] = c->a[5] = c->a[6] = 1;
+static int compare_x(const void* arg1, const void *arg2)
+{
+    int ret;
+    ret = *(int *)arg1 -*(int *)arg2;
+    if ( ret > 0 )
         return 1;
-    */
-}
-#endif
-
-int perform_calibration(calibration *cal)
-{
-    int j;
-    float n, x, y, x2, y2, xy, z, zx, zy;
-    float det, a, b, c, e, f, i;
-    float scaling = 65536.0;
-
-// Get sums for matrix
-    n = x = y = x2 = y2 = xy = 0;
-    for(j=0; j<5; j++)
-    {
-        n += 1.0f;
-        x += (float)cal->x[j];
-        y += (float)cal->y[j];
-        x2 += (float)(cal->x[j]*cal->x[j]);
-        y2 += (float)(cal->y[j]*cal->y[j]);
-        xy += (float)(cal->x[j]*cal->y[j]);
-    }
-// Get determinant of matrix -- check if determinant is too small
-    det = n*(x2*y2 - xy*xy) + x*(xy*y - x*y2) + y*(x*xy - y*x2);
-    if(det < 0.1f && det > -0.1f)
-    {
-        printf("ts_calibrate: determinant is too small -- %f\n",det);
-        return 0;
-    }
-
-// Get elements of inverse matrix
-    a = (x2*y2 - xy*xy)/det;
-    b = (xy*y - x*y2)/det;
-    c = (x*xy - y*x2)/det;
-    e = (n*y2 - y*y)/det;
-    f = (x*y - n*xy)/det;
-    i = (n*x2 - x*x)/det;
-
-// Get sums for x calibration
-    z = zx = zy = 0;
-    for(j=0; j<5; j++)
-    {
-        z += (float)cal->xfb[j];
-        zx += (float)(cal->xfb[j]*cal->x[j]);
-        zy += (float)(cal->xfb[j]*cal->y[j]);
-    }
-
-// Now multiply out to get the calibration for framebuffer x coord
-    cal->a[0] = (int)((a*z + b*zx + c*zy)*(scaling));
-    cal->a[1] = (int)((b*z + e*zx + f*zy)*(scaling));
-    cal->a[2] = (int)((c*z + f*zx + i*zy)*(scaling));
-#if 0 //close
-    printf("%f %f %f\n",(a*z + b*zx + c*zy),
-              (b*z + e*zx + f*zy),
-              (c*z + f*zx + i*zy));
-#endif
-// Get sums for y calibration
-    z = zx = zy = 0;
-    for(j=0; j<5; j++)
-    {
-        z += (float)cal->yfb[j];
-        zx += (float)(cal->yfb[j]*cal->x[j]);
-        zy += (float)(cal->yfb[j]*cal->y[j]);
-    }
-
-// Now multiply out to get the calibration for framebuffer y coord
-    cal->a[3] = (int)((a*z + b*zx + c*zy)*(scaling));
-    cal->a[4] = (int)((b*z + e*zx + f*zy)*(scaling));
-    cal->a[5] = (int)((c*z + f*zx + i*zy)*(scaling));
-#if 0  // closed
-    printf("%f %f %f\n",(a*z + b*zx + c*zy),
-              (b*z + e*zx + f*zy),
-              (c*z + f*zx + i*zy));
-#endif
-// If we got here, we're OK, so assign scaling to a[6] and return
-    cal->a[6] = (int)scaling;
-    return 1;
+    else if ( ret < 0 )
+        return -1;
+    return 0;
 }
 
-static void get_sample (calibration *cal,int index, int x, int y, char *name)
+static int compare_y(const void* arg1, const void *arg2)
 {
-    static int last_x = -1, last_y;
+    int ret;
+    ret = *(int *)arg1 -*(int *)arg2;
+    if ( ret > 0 )
+        return 1;
+    else if ( ret < 0 )
+        return -1;
+    return 0;
+}
 
-    if (last_x != -1)
+int read_phy_xy(int *x, int *y)
+{
+
+    int number, middle;
+    int phyx, phyy;
+
+    printf("read physical x, y\n");
+again:
+    while (1)
     {
-#define NR_STEPS 10
-        int dx = ((x - last_x) << 16) / NR_STEPS;
-        int dy = ((y - last_y) << 16) / NR_STEPS;
-        int i;
-        last_x <<= 16;
-        last_y <<= 16;
-        for (i = 0; i < NR_STEPS; i++)
+        if ( Read_TouchPanel(&phyx, &phyy) > 0 )
         {
-            put_cross (last_x >> 16, last_y >> 16, 2 | XORMODE);
-            //usleep (1000);
-            GUI_Delay(10);
-            put_cross (last_x >> 16, last_y >> 16, 2 | XORMODE);
-            last_x += dx;
-            last_y += dy;
+            if ( (phyx < 0) || ( phyy < 0 ) )
+                continue;
+            break;
         }
     }
 
+// Delay 50 ms to wait HW ADC to be ready
+    GUI_X_Delay(50);
+    number = 0;
+    while (1)
+    {
+        if ( Read_TouchPanel(&phyx, &phyy) > 0)
+        {
+            sampleX[number] = phyx;
+            sampleY[number] = phyy;
+        }
+        else
+        {
+            break;
+        }
+        if ( number < MAX_NUM-1)
+            number++;
+    }
 
-    put_cross(x, y, 2 | XORMODE);
-    getxy (&cal->x [index], &cal->y [index]);
-    put_cross(x, y, 2 | XORMODE);
+    printf("Capture %d samples\n",number);
 
-    last_x = cal->xfb [index] = x;
-    last_y = cal->yfb [index] = y;
+// pick the average value of the middle for the coordinate x, y
+    middle = number/2;
+    qsort(sampleX, number, sizeof(int), compare_x);
+    *x = (sampleX[middle-1] + sampleX[middle]) / 2;
 
-    printf("%s : X = %4d Y = %4d\n", name, cal->x [index], cal->y [index]);
+    qsort(sampleY, number, sizeof(int), compare_y);
+    *y = (sampleY[middle-1] + sampleY[middle]) / 2;
+
+    if ( number <= 10)
+        goto again;
+
+// >= DIFF, it means touch screen is not stable. stop the calibration
+    if ( abs(sampleY[middle-1] - sampleY[middle]) >= DIFF )
+        return 0;
+    if ( abs(sampleX[middle-1] - sampleX[middle]) >= DIFF )
+        return 0;
+    return 1;
+}
+
+int run_calibration(void)
+{
+    int i, no;
+    int sum_px, sum_py, sum_pxy, sum_square_px, sum_square_py, sum_lx, sum_lpx, sum_lpy, sum_ly;
+    float deter, im11, im12, im13, im21, im22, im23, im31, im32, im33;
+
+// logical.x = physical.x X A + physical.y X B + C
+// logical.y = physical.x X D + physical.y X E + F
+
+// multiple physic.y and physic.y as follows
+//  logical.x X physical.x = physical.x X A X physical.x+ physical.y X B X physical.x + C X physical.x
+//  logical.x X physical.y = physical.x X A X physical.y+ physical.y X B X physical.y + C X physical.y
+// we can obtain the paramters A, B, C from 3 x 3 matrix
+// In the similiar method, we could also obtain the parameters D, E, F
+//  logical.y X physical.x = physical.x X D X physical.x+ physical.y X E X physical.x + F X physical.x
+//  logical.y X physical.y = physical.x X D X physical.y+ physical.y X E X physical.y + F X physical.y
+
+    cal_values[6] = 65536;
+    sum_px = sum_py = sum_square_px = sum_square_py = sum_pxy = 0;
+
+// Get sums of physical x, y for matrix
+
+    no = POINT_NUM;
+    for(i=0; i<POINT_NUM; i++)
+    {
+        sum_px += physical[i].x;
+        sum_py += physical[i].y;
+        sum_square_px += (physical[i].x * physical[i].x);
+        sum_square_py += (physical[i].y * physical[i].y);
+        sum_pxy += (physical[i].x * physical[i].y);
+    }
+// From 3x3 matix Z, ZX= Y, X, Y is a 3 x 1 matrix
+// deter is the determinant for 3 x 3 matix
+
+    im11 = (float)sum_pxy*sum_py - (float)sum_px*sum_square_py;
+    im21 = (float)sum_px*sum_pxy - (float)sum_py*sum_square_px;
+    im31=  (float)sum_square_px*sum_square_py - (float)sum_pxy*sum_pxy;
+    deter = im11*sum_px+im21*sum_py+im31*no;
+
+    if(deter < 0.01 && deter > -0.01)
+    {
+        printf("ts_calibrate: No inverse matrix \n");
+        return 0;
+    }
+
+// Get elements of inverse matrix as follows
+    // im11 im12 im13
+    // im21 im22 im23
+    // im31 im32 im33
+    im32 = im11 = im11/deter;
+    im12 = (float)(no*sum_square_py - sum_py*sum_py)/deter;
+    im22 = im13 = (float)(sum_px*sum_py - no*sum_pxy)/deter;
+    im33 = im21 = im21/deter;
+    im23 = (float)(no*sum_square_px - sum_px*sum_px)/deter;
+    im31= im31/deter;
+
+// Get sums of logical and physical for x calibration
+    sum_lx = sum_lpx = sum_lpy = 0;
+    for(i=0; i<POINT_NUM; i++)
+    {
+        sum_lx += logical[i].x;
+        sum_lpx += (logical[i].x*physical[i].x);
+        sum_lpy += (logical[i].x*physical[i].y);
+    }
+
+// get the calibration for A, B, C mapping cal_values[0], cal_values[1], cal_values[2]
+    cal_values[0] = (int)((im11*sum_lx + im12*sum_lpx + im13*sum_lpy)* cal_values[6]);
+    cal_values[1] = (int)((im21*sum_lx + im22*sum_lpx + im23*sum_lpy)* cal_values[6]);
+    cal_values[2] = (int)((im31*sum_lx + im32*sum_lpx + im33*sum_lpy)* cal_values[6]);
+
+// Get sums of logical and physical for y calibration
+    sum_ly = sum_lpx = sum_lpy = 0;
+    for(i=0; i<POINT_NUM; i++)
+    {
+        sum_ly += logical[i].y;
+        sum_lpx += (logical[i].y*physical[i].x);
+        sum_lpy += (logical[i].y*physical[i].y);
+    }
+
+// get the calibration for D, E, F mapping cal_values[3], cal_values[4], cal_values[5]
+    cal_values[3] = (int)((im11*sum_ly + im12*sum_lpx + im13*sum_lpy)* cal_values[6]);
+    cal_values[4] = (int)((im21*sum_ly + im22*sum_lpx + im23*sum_lpy)* cal_values[6]);
+    cal_values[5] = (int)((im31*sum_ly + im32*sum_lpx + im33*sum_lpy)* cal_values[6]);
+
+    return 1;
+}
+
+
+int read_calib_sample(char *rect_name, int index, int logx, int logy)
+{
+    int result;
+	  GUI_SetColor(GUI_WHITE);
+    write_cross(logx, logy);
+    result = read_phy_xy (&physical[index].x, &physical[index].y);
+	  GUI_SetColor(GUI_BLACK);
+    write_cross(logx, logy);
+
+    logical[index].x = logx;
+    logical[index].y = logy;
+
+    printf("%s : X = %4d Y = %4d\n", rect_name, physical[index].x, physical[index].y);
+    return result;
 }
 
 int ts_calibrate(int xsize, int ysize)
 {
-    int i;
+    int result,d1, d2, d3;
+    GUI_SetBkColor(GUI_BLACK);
+	  GUI_Clear();
 
-    xres = xsize;
-    yres = ysize;
+	  if ( xsize >= 800 ) // 800x480
+		{
+        GUI_SetFont(&GUI_Font24B_ASCII);
+			  d1 = -50;
+			  d2 = -20;
+			  d3 = 10;
+		} 
+		else if ( xsize >= 480 ) // 480 x272
+		{
+        GUI_SetFont(&GUI_Font13B_ASCII);
+				d1 = -50;
+			  d2 = -30;
+			  d3 = -10;
+		}
+		else
+		{
+			  GUI_SetFont(&GUI_Font8_ASCII);
+				d1 = -20;
+			  d2 = -10;
+			  d3 = 0;
+		}
 
-    for (i = 0; i < NR_COLORS; i++)
-        setcolor (i, palette [i]);
+    GUI_SetColor(GUI_RED);
+    GUI_DispStringHCenterAt("Nuvoton's TS calibration utility", xsize / 2, ysize / 4 +d1);
 
-//    put_string_center (xres / 2, yres / 4,
-//                       "TSLIB calibration utility", 1);
-//    put_string_center (xres / 2, yres / 4 + 20,
-//                       "Touch crosshair to calibrate", 2);
+    GUI_SetColor(GUI_BLUE);
+    GUI_DispStringHCenterAt("Touch crosshair to calibrate", xsize / 2, ysize / 4 +d2 );
 
-    GUI_SetColor(palette [1]);
-    GUI_DispStringHCenterAt("TSLIB calibration utility", xres / 2, yres / 4);
+    GUI_SetColor(GUI_GREEN);
+    GUI_DispStringHCenterAt("Click down 2 seconds and release", xsize / 2, ysize / 4 + d3);
 
-    GUI_SetColor(palette [2]);
-    GUI_DispStringHCenterAt("Touch crosshair to calibrate", xres / 2, yres / 4 + 20);
+    printf("xsize = %d, ysize = %d\n", xsize, ysize);
 
-    printf("xres = %d, yres = %d\n", xres, yres);
+    //GUI_SetColor(GUI_WHITE);
+    //GUI_SetDrawMode(GUI_DRAWMODE_XOR);
+    GUI_SetPenSize(1);
 
-// Read a touchscreen event to clear the buffer
-    //getxy(ts, 0, 0);
-
-    get_sample (&cal, 0, 50,        50,        "Top left");
-//  GUI_Delay(200);
-    get_sample (&cal, 1, xres - 50, 50,        "Top right");
-    //GUI_Delay(200);
-    get_sample (&cal, 2, xres - 50, yres - 50, "Bot right");
-//  GUI_Delay(200);
-    get_sample (&cal, 3, 50,        yres - 50, "Bot left");
-//  GUI_Delay(200);
-    get_sample (&cal, 4, xres / 2,  yres / 2,  "Center");
-//  GUI_Delay(200);
-    if (perform_calibration (&cal))
+    //Top left
+    result = read_calib_sample ("Top left", 0, 40, 40);
+    GUI_X_Delay(300);
+    if ( result == 0 )
     {
-        printf ("Calibration constants: ");
-        for (i = 0; i < 7; i++) printf("%d ", cal.a [i]);
-        printf("\n");
+        return(DisplayFailStatus(xsize, ysize));
+    }
+
+    //Top right
+    result = read_calib_sample ("Top right", 1, xsize - 40, 40);
+    GUI_X_Delay(300);
+    if ( result == 0 )
+    {
+        return(DisplayFailStatus(xsize, ysize));
+    }
+
+    //Bottom right
+    result = read_calib_sample ("Bottom right", 2, xsize - 40, ysize - 40);
+    GUI_X_Delay(300);
+    if ( result == 0 )
+    {
+        return(DisplayFailStatus(xsize, ysize));
+    }
+
+    //Bottom left
+    result = read_calib_sample ("Bottom left", 3, 40, ysize - 40);
+    GUI_X_Delay(300);
+    if ( result == 0 )
+    {
+        return(DisplayFailStatus(xsize, ysize));
+    }
+
+    // Center
+    result = read_calib_sample ("Center", 4, xsize / 2,  ysize / 2);
+    GUI_X_Delay(300);
+    if ( result == 0 )
+    {
+        return(DisplayFailStatus(xsize, ysize));
+    }
+
+// After running API run_calibration, global variable cal_values is exported.
+    if (run_calibration())
+    {
+        printf("Calibration OK.\n");
+        result = 1;
     }
     else
     {
         printf("Calibration failed.\n");
-        i = -1;
+        result = -1;
     }
-    final_cal.a[0] = cal.a[1];
-    final_cal.a[1] = cal.a[2];
-    final_cal.a[2] = cal.a[0];
-    final_cal.a[3] = cal.a[4];
-    final_cal.a[4] = cal.a[5];
-    final_cal.a[5] = cal.a[3];
-    final_cal.a[6] = cal.a[6];
-    return i;
-}
 #if 0
-int linear_read(int *sumx, int *sumy)
-{
-    int xtemp,ytemp;
-
-//  ret = dejitter_read(info->next, samp, nr);
-    if ( Read_TouchPanel(sumx, sumy) > 0)
-    {
-//printf("Before X=%d, Y=%d\n",*sumx, *sumy);
-        xtemp = *sumx;
-        ytemp = *sumy;
-        *sumx = ( final_cal.a[2] +
-                  final_cal.a[0]*xtemp +
-                  final_cal.a[1]*ytemp ) / final_cal.a[6];
-        *sumy = ( final_cal.a[5] +
-                  final_cal.a[3]*xtemp +
-                  final_cal.a[4]*ytemp ) / final_cal.a[6];
-//printf("After X=%d, Y=%d\n",*sumx, *sumy);
-        return 1;
-    }
-    else
-    {
-        *sumx = -1;
-        *sumy = -1;
-        return -1;
-    }
-}
+	printf("cal_values[0][0x%08X]\n", (unsigned int)cal_values[0]);
+	printf("cal_values[1][0x%08X]\n", (unsigned int)cal_values[1]);
+	printf("cal_values[2][0x%08X]\n", (unsigned int)cal_values[2]);
+	printf("cal_values[3][0x%08X]\n", (unsigned int)cal_values[3]);
+	printf("cal_values[4][0x%08X]\n", (unsigned int)cal_values[4]);
+	printf("cal_values[5][0x%08X]\n", (unsigned int)cal_values[5]);
+	printf("cal_values[6][0x%08X]\n", (unsigned int)cal_values[6]);
 #endif
-int ts_phy2log(int *sumx, int *sumy)
-{
-    int xtemp,ytemp;
+    return result;
+}
 
-    xtemp = *sumx;
-    ytemp = *sumy;
-    *sumx = ( final_cal.a[2] +
-              final_cal.a[0]*xtemp +
-              final_cal.a[1]*ytemp ) / final_cal.a[6];
-    *sumy = ( final_cal.a[5] +
-              final_cal.a[3]*xtemp +
-              final_cal.a[4]*ytemp ) / final_cal.a[6];
-//printf("After X=%d, Y=%d\n",*sumx, *sumy);
+// logical.x = physical.x X A + physical.y X B + C
+// logical.y = physical.x X D + physical.y X E + F
+int ts_phy2log(int *logx, int *logy)
+{
+    int phyx,phyy;
+
+    phyx = *logx;
+    phyy = *logy;
+    *logx = ( phyx*cal_values[0] + phyy*cal_values[1] + cal_values[2] ) / cal_values[6];
+    *logy = ( phyx*cal_values[3]+  phyy*cal_values[4] + cal_values[5] ) / cal_values[6];
     return 1;
 }
 
+// write the calibration parameters into one file
 int ts_writefile(void)
 {
-#ifdef __USE_SD__
-    size_t cnt;
-    FRESULT res;
-    res = f_lseek(&hFile, 0);
-    if (res != FR_OK)
-    {
-        printf("CANNOT seek the calibration into file\n");
-        return -1;
-    }
-
-    res = f_write(&hFile, (char *)&final_cal.a[0], 28, &cnt);
-    if (res != FR_OK)
-    {
-        printf("CANNOT write the calibration into file, %d\n", cnt);
-        return -1;
-    }
-#else
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x00, final_cal.a[0]);
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x04, final_cal.a[1]);
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x08, final_cal.a[2]);
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x0C, final_cal.a[3]);
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x10, final_cal.a[4]);
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x14, final_cal.a[5]);
-    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x18, final_cal.a[6]);
+#if 0
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x00, cal_values[0]);
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x04, cal_values[1]);
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x08, cal_values[2]);
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x0C, cal_values[3]);
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x10, cal_values[4]);
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x14, cal_values[5]);
+    FMC_Write(__DEMO_TSFILE_ADDR__ + 0x18, cal_values[6]);
     FMC_Write(__DEMO_TSFILE_ADDR__ + 0x1C, 0x55AAA55A);
 #endif
     return 0;
@@ -405,30 +410,37 @@ int ts_writefile(void)
 
 int ts_readfile(void)
 {
-#ifdef __USE_SD__
-    size_t cnt;
-    FRESULT res;
-    res = f_lseek(&hFile, 0);
-    if (res != FR_OK)
-    {
-        printf("CANNOT seek the calibration into file\n");
-        return -1;
-    }
-
-    res = f_read(&hFile, (char *)&final_cal.a[0], 28, &cnt);
-    if (res != FR_OK)
-    {
-        printf("CANNOT read the calibration into file, %d\n", cnt);
-        return -1;
-    }
-#else
-    final_cal.a[0] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x00);
-    final_cal.a[1] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x04);
-    final_cal.a[2] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x08);
-    final_cal.a[3] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x0C);
-    final_cal.a[4] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x10);
-    final_cal.a[5] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x14);
-    final_cal.a[6] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x18);
+#if 0
+    cal_values[0] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x00);
+    cal_values[1] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x04);
+    cal_values[2] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x08);
+    cal_values[3] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x0C);
+    cal_values[4] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x10);
+    cal_values[5] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x14);
+    cal_values[6] = FMC_Read(__DEMO_TSFILE_ADDR__ + 0x18);
 #endif
     return 0;
+}
+
+void ts_init(void)
+{
+#if 0
+#ifdef __DEMO_160x128__
+    cal_values[0] = 0xFFFFFFEB;
+    cal_values[1] = 0x00000D1D;
+    cal_values[2] = 0xFFEE9924;
+    cal_values[3] = 0x00000BF3;
+    cal_values[4] = 0x00000004;
+    cal_values[5] = 0xFFE8E0E6;
+    cal_values[6] = 0x00010000;
+#else    
+    cal_values[0] = 0x00000050;
+    cal_values[1] = 0x00001896;
+    cal_values[2] = 0xFFC6AEB4;
+    cal_values[3] = 0x00001404;
+    cal_values[4] = 0xFFFFFFF5;
+    cal_values[5] = 0xFFD1601B;
+    cal_values[6] = 0x00010000;
+#endif
+#endif
 }

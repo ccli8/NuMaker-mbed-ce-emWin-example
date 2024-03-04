@@ -9,7 +9,7 @@
  * file COPYING for details.
  *
  */
-
+#if 0
 //#include "config.h"
 
 #include <stdio.h>
@@ -400,4 +400,5 @@ void fillrect (int x1, int y1, int x2, int y2, unsigned colidx)
         }
     }
 }
+#endif
 #endif

@@ -12,7 +12,7 @@
 
 #ifndef _FBUTILS_H
 #define _FBUTILS_H
-
+#if 0
 //#include <asm/types.h>
 
 /* This constant, being ORed with the color index tells the library
@@ -31,5 +31,5 @@ void pixel (int x, int y, unsigned colidx);
 void line (int x1, int y1, int x2, int y2, unsigned colidx);
 void rect (int x1, int y1, int x2, int y2, unsigned colidx);
 void fillrect (int x1, int y1, int x2, int y2, unsigned colidx);
-
+#endif
 #endif /* _FBUTILS_H */

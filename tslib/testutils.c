@@ -11,7 +11,7 @@
  * Waits for the screen to be touched, averages x and y sample
  * coordinates until the end of contact
  */
-
+#if 0
 //#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -307,3 +307,4 @@ int ts_test(int xsize, int ysize)
 
     return 0;
 }
+#endif

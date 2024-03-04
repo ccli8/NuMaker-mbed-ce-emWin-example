@@ -14,6 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+#if 0
 #include <stdarg.h>
 //#include <sys/time.h>
 
@@ -91,7 +92,7 @@ TSAPI int ts_read_raw(struct tsdev *, struct ts_sample *, int);
 int ts_calibrate(int xsize, int ysize);
 
 int ts_phy2log(int *sumx, int *sumy);
-
+#endif
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

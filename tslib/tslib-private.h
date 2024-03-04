@@ -14,7 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
+#if 0
 #include "tslib.h"
 #include "tslib-filter.h"
 
@@ -32,7 +32,7 @@ int __ts_attach_raw(struct tsdev *ts, struct tslib_module_info *info);
 int ts_load_module(struct tsdev *dev, const char *module, const char *params);
 int ts_load_module_raw(struct tsdev *dev, const char *module, const char *params);
 int ts_error(const char *fmt, ...);
-
+#endif
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -14,7 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
+#if 0
 #include <tslib.h>
 
 struct tslib_module_info;
@@ -46,7 +46,7 @@ TSAPI extern int tslib_parse_vars(struct tslib_module_info *,
                                   const struct tslib_vars *, int,
                                   const char *);
 #endif
-
+#endif
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

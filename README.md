@@ -1,43 +1,35 @@
-# Getting started sample with emWin simple demo on Mbed OS
+# Example for emWin HMI on Nuvoton's Mbed CE enabled boards
 
 This is an example to utilize emWin library to demonstrate interactive feature.
 
-### CLI for NuMaker-PFM-M487
-Target board "NUMAKER_PFM_M487" with GCC_ARM toolchain.
-1. mbed target "NUMAKER_PFM_M487"
-2. mbed toolchain "GCC_ARM"
-3. mbed config -G GCC_ARM_PATH "C:\Program Files (x86)\GNU Tools ARM Embedded\6 2017-q1-update\bin"
-4. mbed compile
+## Supported platforms
 
-Target board "NUMAKER_PFM_M487" with ARM toolchain.
-1. mbed target "NUMAKER_PFM_M487"
-2. mbed toolchain "ARM"
-3. mbed config -G ARMC6_PATH "C:\Keil_v5\ARM\ARMCLANG\bin"
-4. mbed compile
+Currently, the following Nuvoton Mbed CE enabled boards supports this example.
+- [NuMaker-PFM-M487](https://www.nuvoton.com/products/iot-solution/iot-platform/numaker-pfm-m487/)
+- [NuMaker-IoT-M467](https://www.nuvoton.com/board/numaker-iot-m467/)
 
-Please note that the toolchain path in step 3 may be different from your environment.
+## Support development tools
 
-### CLI for NuMaker-IoT-M467
-Target board "NUMAKER_IOT_M467" with GCC_ARM toolchain.
-1. mbed target "NUMAKER_IOT_M467"
-2. mbed toolchain "GCC_ARM"
-3. mbed config -G GCC_ARM_PATH "C:\Program Files (x86)\GNU Tools ARM Embedded\6 2017-q1-update\bin"
-4. mbed compile
+Use cmake-based build system.
+Check out [hello world example](https://github.com/mbed-ce/mbed-ce-hello-world) for getting started.
 
-Target board "NUMAKER_IOT_M467" with ARM toolchain.
-1. mbed target "NUMAKER_IOT_M467"
-2. mbed toolchain "ARM"
-3. mbed config -G ARMC6_PATH "C:\Keil_v5\ARM\ARMCLANG\bin"
-4. mbed compile
+> **⚠️ Warning**
+>
+> Legacy development tools below are not supported anymore.
+> - [Arm's Mbed Studio](https://os.mbed.com/docs/mbed-os/v6.15/build-tools/mbed-studio.html)
+> - [Arm's Mbed CLI 2](https://os.mbed.com/docs/mbed-os/v6.15/build-tools/mbed-cli-2.html)
+> - [Arm's Mbed CLI 1](https://os.mbed.com/docs/mbed-os/v6.15/tools/developing-mbed-cli.html)
 
-Please note that the toolchain path in step 3 may be different from your environment.
+For [VS Code development](https://github.com/mbed-ce/mbed-os/wiki/Project-Setup:-VS-Code)
+or [OpenOCD as upload method](https://github.com/mbed-ce/mbed-os/wiki/Upload-Methods#openocd),
+install below additionally:
 
-### Burn Code & Execute
-1. Connect the board NuMaker-PFM-XXX / NuMaker-IoT-XXX with your PC by USB cable, then there will be one "NuMicro MCU" disk.
-2. Copy the built binary file into this disk.
-3. Press reset button to execute, user could test emWin simple demo.
+-   [NuEclipse](https://github.com/OpenNuvoton/Nuvoton_Tools#numicro-software-development-tools): Nuvoton's fork of Eclipse
+-   Nuvoton forked OpenOCD: Shipped with NuEclipse installation package above.
+    Checking openocd version `openocd --version`, it should fix to `0.10.022`.
 
-### Demo condition, document and link
+## Hardware requirements
+
 This demo utilizes LCD and touch to display and touch operation.
 
 LCD: ILI9341 MPU-type RGB56 QVGA LCD with resistive touch panel.
@@ -53,63 +45,107 @@ The links of Nuvoton HMI/GUI official forum:
 [牛卧堂](http://nuvoton-mcu.com/forum.php?mod=forumdisplay&fid=86)
 
 ### How to utilize emWin tool "GUIBuilder" in Windows?
+
 Please refer to the chapter 4 "EMWIN GUIBUILDER" of "M480 emWin Quick Start Guide.pdf" for more details.
 
-### PIN
-M487 TFT pin:
--------------
-LCD_RS   PH_3
-LCD_REST PB_6
-LCD_BL   PB_7
+### Pin definitions
 
-M487 TOUCH pin:
----------------
-LCD_XR PB_9
-LCD_YU PB_8
-LCD_XL PH_4
-LCD_YD PH_5
-ADC_X  PB_8
-ADC_Y  PB_9
+#### M487 TFT pins
 
-M487 EBI pin:
--------------
-EBI_nRD  PE_5
-EBI_nWR  PE_4
-EBI_nCS0 PD_14
-EBI_AD15 PH_11
-EBI_AD14 PH_10
-EBI_AD13 PH_9
-EBI_AD12 PH_8
-EBI_AD11 PE_0
-EBI_AD10 PE_1
-EBI_AD9  PE_15
-EBI_AD8  PE_14
-EBI_AD7  PD_9
-EBI_AD6  PD_8
-EBI_AD5  PG_14
-EBI_AD4  PG_13
-EBI_AD3  PG_12
-EBI_AD2  PG_11
-EBI_AD1  PG_10
-EBI_AD0  PG_9
+NAME            | PIN
+----------------|---------
+LCD_RS          | PH_3
+LCD_REST        | PB_6
+LCD_BL          | PB_7
 
-M467 TFT pin:
--------------
-LCM_DC  PB_2
-LCM_LED PB_5
+#### M487 TOUCH pins
 
-M467 TOUCH pin:
----------------
-LCD_XR PB_9
-LCD_YU PB_6
-LCD_XL PB_7
-LCD_YD PB_8
-ADC_X  PB_6
-ADC_Y  PB_9
+NAME            | PIN
+----------------|---------
+LCD_XR          | PB_9
+LCD_YU          | PB_8
+LCD_XL          | PH_4
+LCD_YD          | PH_5
+ADC_X           | PB_8
+ADC_Y           | PB_9
 
-M467 SPI pin:
--------------
-SPI2_MOSI PA_8
-SPI2_MISO PA_9
-SPI2_SCLK PA_10
-SPI2_SS   PA_11
+#### M487 EBI pins
+
+NAME            | PIN
+----------------|---------
+EBI_nRD         | PE_5
+EBI_nWR         | PE_4
+EBI_nCS0        | PD_14
+EBI_AD15        | PH_11
+EBI_AD14        | PH_10
+EBI_AD13        | PH_9
+EBI_AD12        | PH_8
+EBI_AD11        | PE_0
+EBI_AD10        | PE_1
+EBI_AD9         | PE_15
+EBI_AD8         | PE_14
+EBI_AD7         | PD_9
+EBI_AD6         | PD_8
+EBI_AD5         | PG_14
+EBI_AD4         | PG_13
+EBI_AD3         | PG_12
+EBI_AD2         | PG_11
+EBI_AD1         | PG_10
+EBI_AD0         | PG_9
+
+#### M467 TFT pins
+
+NAME            | PIN
+----------------|---------
+LCM_DC          | PB_2
+LCM_LED         | PB_5
+
+#### M467 TOUCH pins
+
+NAME            | PIN
+----------------|---------
+LCD_XR          | PB_9
+LCD_YU          | PB_6
+LCD_XL          | PB_7
+LCD_YD          | PB_8
+ADC_X           | PB_6
+ADC_Y           | PB_9
+
+#### M467 SPI pins
+
+NAME            | PIN
+----------------|---------
+SPI2_MOSI       | PA_8
+SPI2_MISO       | PA_9
+SPI2_SCLK       | PA_10
+SPI2_SS         | PA_11
+
+## Developer guide
+
+In the following, we take **NuMaker-PFM-M487** board as an example for Mbed CE support.
+
+1.  Clone the example and navigate into it
+    ```
+    $ git clone https://github.com/mbed-nuvoton/NuMaker-mbed-ce-emWin-example
+    $ cd NuMaker-mbed-ce-emWin-example
+    $ git checkout -f master
+    ```
+
+1.  Deploy necessary libraries
+    ```
+    $ git submodule update --init
+    ```
+    Or for fast install:
+    ```
+    $ git submodule update --init --filter=blob:none
+    ```
+
+1.  Compile with cmake/ninja
+    ```
+    $ mkdir build; cd build
+    $ cmake .. -GNinja -DCMAKE_BUILD_TYPE=Develop -DMBED_TARGET=NUMAKER_PFM_M487
+    $ ninja
+    $ cd ..
+    ```
+
+1.  Flash by drag-n-drop built image `NuMaker-mbed-ce-emWin-example.bin` or `NuMaker-mbed-ce-emWin-example.hex` onto **NuMaker-PFM-M487** board
